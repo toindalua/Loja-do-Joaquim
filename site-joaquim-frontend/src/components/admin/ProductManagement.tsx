@@ -49,7 +49,8 @@ const ProductManagement = () => {
   const fetchSubcategories = async () => {
     const res = await fetch('http://localhost:4001/subcategorias');
     const data = await res.json();
-    setSubcategories(data.map((s: any) => s.nome));
+    console.log("data: ",data);
+    setSubcategories(data.map((s: any) => `${s.nome} - ${s.categoria}`));
   };
 
   useEffect(() => {

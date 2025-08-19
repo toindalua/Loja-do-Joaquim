@@ -13,6 +13,8 @@ const ProductCatalog = () => {
   const [subcategoryOptions, setSubcategoryOptions] = useState<{ label: string; value: string }[]>([]);
   const [sizeOptions, setSizeOptions] = useState<{ label: string; value: string }[]>([]);
 
+
+  
   useEffect(() => {
     if (category) {
       setSelectedSubcategories([category]);

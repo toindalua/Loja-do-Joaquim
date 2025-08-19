@@ -15,7 +15,8 @@ router.get('/', async (req, res) => {
         c.nome AS category
       FROM produtos p
       JOIN subcategorias s ON p.subcategoria_id = s.id
-      JOIN categorias c ON s.categoria_id = c.id
+      JOIN categoria_subcategoria cs ON p.subcategoria_id = cs.subcategoria_id
+      JOIN categorias c ON cs.categoria_id = c.id
     `);
 
     const produtosFormatados = result.rows.map(prod => ({

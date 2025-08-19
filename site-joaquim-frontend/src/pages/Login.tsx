@@ -59,12 +59,12 @@ const Login = () => {
               Email
             </label>
             <input
-              id="email"
-              type="email"
-              className={`w-full px-4 py-2 border rounded-md ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="seu@email.com"
-              {...register('email')}
-            />
+                 id="email"
+                 type="email"
+                   className={`w-full px-4 py-2 border rounded-md text-black bg-white ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
+                     placeholder="seu@email.com"
+                       {...register('email')}
+                      />
             {errors.email && (
               <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
             )}
@@ -75,12 +75,12 @@ const Login = () => {
               Senha
             </label>
             <input
-              id="password"
-              type="password"
-              className={`w-full px-4 py-2 border rounded-md ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
-              placeholder="********"
-              {...register('password')}
-            />
+            id="password"
+            type="password"
+             className={`w-full px-4 py-2 border rounded-md text-black bg-white ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
+             placeholder="********"
+               {...register('password')}
+              />
             {errors.password && (
               <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
             )}

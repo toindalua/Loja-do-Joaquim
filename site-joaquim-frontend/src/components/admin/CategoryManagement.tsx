@@ -3,114 +3,137 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus } from 'lucide-react';
+import { Plus, Trash, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Product {
+interface Category {
   id: number;
-  name: string;
-  price: string;
-  image: string;
-  subcategory: string;
-  category: string;
-  availableSizes: string[];
+  nome: string;
 }
 
-const ProductManagement = () => {
+interface Subcategory {
+  id: number;
+  nome: string;
+  categoriaId: number;
+  categoriaNome?: string;
+}
+
+const SubcategoryManagement = () => {
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    image: '',
-    category: '',
-    subcategory: '',
-    availableSizes: '',
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [formData, setFormData] = useState({ nome: '', categoriaId: '' });
+  const [editId, setEditId] = useState<number | null>(null);
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const fetchCategories = async () => {
+    const res = await fetch('http://localhost:4001/categorias');
+    const data = await res.json();
+    setCategories(data);
+  };
 
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch('http://localhost:4001/produtos');
-      const data = await res.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Erro ao buscar produtos:', error);
-      toast.error('Erro ao buscar produtos do banco.');
-    }
+  const fetchSubcategories = async () => {
+    const res = await fetch('http://localhost:4001/subcategorias');
+    const data = await res.json();
+    setSubcategories(data);
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchCategories();
+    fetchSubcategories();
   }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Aqui deveria haver uma chamada POST para salvar no banco
-
-    toast.success('Produto adicionado com sucesso!');
-    setFormData({
-      name: '',
-      price: '',
-      image: '',
-      category: '',
-      subcategory: '',
-      availableSizes: '',
-    });
-    setShowForm(false);
-    fetchProducts(); // Atualiza lista
-  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = editId
+      ? `http://localhost:4001/subcategorias/${editId}`
+      : 'http://localhost:4001/subcategorias';
+
+    const method = editId ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+
+    if (res.ok) {
+      toast.success(editId ? 'Subcategoria atualizada!' : 'Subcategoria adicionada!');
+      setFormData({ nome: '', categoriaId: '' });
+      setShowForm(false);
+      setEditId(null);
+      fetchSubcategories();
+    } else {
+      toast.error('Erro ao salvar subcategoria.');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja excluir esta subcategoria?')) return;
+    const res = await fetch(`http://localhost:4001/subcategorias/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      toast.success('Subcategoria excluída.');
+      fetchSubcategories();
+    } else {
+      toast.error('Erro ao excluir subcategoria.');
+    }
+  };
+
+  const handleEdit = (subcategory: Subcategory) => {
+    setFormData({ nome: subcategory.nome, categoriaId: subcategory.categoriaId.toString() });
+    setEditId(subcategory.id);
+    setShowForm(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gerenciar Produtos</h2>
-        <Button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2">
-          <Plus size={16} />
-          Adicionar Produto
+        <h2 className="text-2xl font-bold">Gerenciar Subcategorias</h2>
+        <Button onClick={() => { setShowForm(true); setEditId(null); }}>
+          <Plus size={16} className="mr-2" /> Nova Subcategoria
         </Button>
       </div>
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Novo Produto</CardTitle>
+            <CardTitle>{editId ? 'Editar Subcategoria' : 'Nova Subcategoria'}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Nome</Label>
-                  <Input value={formData.name} onChange={e => handleInputChange('name', e.target.value)} required />
-                </div>
-                <div>
-                  <Label>Preço</Label>
-                  <Input value={formData.price} onChange={e => handleInputChange('price', e.target.value)} required />
-                </div>
-                <div>
-                  <Label>Imagem (URL)</Label>
-                  <Input value={formData.image} onChange={e => handleInputChange('image', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Categoria</Label>
-                  <Input value={formData.category} onChange={e => handleInputChange('category', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Subcategoria</Label>
-                  <Input value={formData.subcategory} onChange={e => handleInputChange('subcategory', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Tamanhos disponíveis (separados por vírgula)</Label>
-                  <Input value={formData.availableSizes} onChange={e => handleInputChange('availableSizes', e.target.value)} />
-                </div>
+              <div>
+                <Label>Nome</Label>
+                <Input
+                  value={formData.nome}
+                  onChange={e => handleInputChange('nome', e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <select
+                  value={formData.categoriaId}
+                  onChange={e => handleInputChange('categoriaId', e.target.value)}
+                  required
+                  className="w-full border rounded px-2 py-1"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Salvar</Button>
-                <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
+                <Button type="submit">{editId ? 'Atualizar' : 'Salvar'}</Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditId(null); }}>
+                  Cancelar
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -119,26 +142,32 @@ const ProductManagement = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Produtos</CardTitle>
+          <CardTitle>Lista de Subcategorias</CardTitle>
         </CardHeader>
         <CardContent>
-          {products.length === 0 ? (
-            <p className="text-muted-foreground">Nenhum produto encontrado no banco.</p>
-          ) : (
+          {subcategories.length > 0 ? (
             <ul className="space-y-4">
-              {products.map(prod => (
-                <li key={prod.id} className="border p-4 rounded-md">
-                  <p><strong>{prod.name}</strong></p>
-                  <p>Categoria: {prod.category}</p>
-                  <p>Subcategoria: {prod.subcategory}</p>
-                  <p>Preço: R$ {prod.price}</p>
-                  <p>Tamanhos: {prod.availableSizes.join(', ')}</p>
-                  {prod.image && (
-                    <img src={prod.image} alt={prod.name} className="mt-2 max-w-[150px]" />
-                  )}
+              {subcategories.map(sub => (
+                <li key={sub.id} className="border p-4 rounded-md flex justify-between items-center">
+                  <div>
+                    <p className="font-bold">{sub.nome}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Categoria: {sub.categoriaNome || sub.categoriaId}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => handleEdit(sub)}>
+                      <Pencil size={16} />
+                    </Button>
+                    <Button variant="destructive" onClick={() => handleDelete(sub.id)}>
+                      <Trash size={16} />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="text-muted-foreground">Nenhuma subcategoria cadastrada.</p>
           )}
         </CardContent>
       </Card>
@@ -146,4 +175,4 @@ const ProductManagement = () => {
   );
 };
 
-export default ProductManagement;
+export default SubcategoryManagement;

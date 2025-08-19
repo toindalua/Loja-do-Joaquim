@@ -110,7 +110,8 @@ const ProductDetail = () => {
           {/* Preço do produto */}
           <div className="text-2xl font-semibold mb-6">
             {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-          </div>
+          </div>                    key={size}
+
           
           {/* Descrição do produto */}
           <p className="text-kickit-gray-medium mb-6">

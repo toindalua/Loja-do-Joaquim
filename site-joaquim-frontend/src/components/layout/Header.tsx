@@ -20,10 +20,12 @@ const Header = () => {
     navigate('/');
   };
 
-  const menuCategories = [
-    { name: 'Masculino', path: '/categoria/masculino' },
-    { name: 'Feminino', path: '/categoria/feminino' }
-  ];
+ const menuCategories = [
+  { name: 'Todos', path: '/produtos' },
+  { name: 'Masculino', path: '/categoria/masculino' },
+  { name: 'Feminino', path: '/categoria/feminino' },
+  { name: 'Infantil', path: '/categoria/infantil' }
+];
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
