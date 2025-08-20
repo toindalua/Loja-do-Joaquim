@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -14,15 +15,17 @@ interface Category {
 interface Subcategory {
   id: number;
   nome: string;
-  categoriaId: number;
-  categoriaNome?: string;
+  categorias: Category[];
 }
 
 const SubcategoryManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-  const [formData, setFormData] = useState({ nome: '', categoriaId: '' });
+  const [formData, setFormData] = useState<{ nome: string; selectedCategories: number[] }>({
+    nome: '',
+    selectedCategories: [],
+  });
   const [editId, setEditId] = useState<number | null>(null);
 
   const fetchCategories = async () => {
@@ -34,7 +37,21 @@ const SubcategoryManagement = () => {
   const fetchSubcategories = async () => {
     const res = await fetch('http://localhost:4001/subcategorias');
     const data = await res.json();
-    setSubcategories(data);
+
+    const formatted = data.reduce((acc: Subcategory[], row: any) => {
+      const existing = acc.find(s => s.id === row.id);
+      if (existing) {
+        existing.categorias.push({ id: row.categoria_id, nome: row.categoria });
+      } else {
+        acc.push({
+          id: row.id,
+          nome: row.nome,
+          categorias: [{ id: row.categoria_id, nome: row.categoria }],
+        });
+      }
+      return acc;
+    }, []);
+    setSubcategories(formatted);
   };
 
   useEffect(() => {
@@ -42,53 +59,65 @@ const SubcategoryManagement = () => {
     fetchSubcategories();
   }, []);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleCategory = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(id)
+        ? prev.selectedCategories.filter(c => c !== id)
+        : [...prev.selectedCategories, id],
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = editId
-      ? `http://localhost:4001/subcategorias/${editId}`
-      : 'http://localhost:4001/subcategorias';
-
+    const url = editId ? `http://localhost:4001/subcategorias/${editId}` : 'http://localhost:4001/subcategorias';
     const method = editId ? 'PUT' : 'POST';
+
+    const payload = {
+      nome: formData.nome,
+      categorias: formData.selectedCategories
+    };
 
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
-      toast.success(editId ? 'Subcategoria atualizada!' : 'Subcategoria adicionada!');
-      setFormData({ nome: '', categoriaId: '' });
+      toast.success(editId ? 'Subcategoria atualizada!' : 'Subcategoria criada!');
+      setFormData({ nome: '', selectedCategories: [] });
       setShowForm(false);
       setEditId(null);
       fetchSubcategories();
     } else {
-      toast.error('Erro ao salvar subcategoria.');
+      const err = await res.json();
+      toast.error(err.erro || 'Erro ao salvar subcategoria.');
     }
+  };
+
+  const handleEdit = (subcategory: Subcategory) => {
+    setFormData({
+      nome: subcategory.nome,
+      selectedCategories: subcategory.categorias.map(c => c.id),
+    });
+    setEditId(subcategory.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Tem certeza que deseja excluir esta subcategoria?')) return;
-    const res = await fetch(`http://localhost:4001/subcategorias/${id}`, {
-      method: 'DELETE',
-    });
-
+    const res = await fetch(`http://localhost:4001/subcategorias/${id}`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Subcategoria excluída.');
       fetchSubcategories();
     } else {
       toast.error('Erro ao excluir subcategoria.');
     }
-  };
-
-  const handleEdit = (subcategory: Subcategory) => {
-    setFormData({ nome: subcategory.nome, categoriaId: subcategory.categoriaId.toString() });
-    setEditId(subcategory.id);
-    setShowForm(true);
   };
 
   return (
@@ -108,7 +137,7 @@ const SubcategoryManagement = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label>Nome</Label>
+                <Label>Nome da Subcategoria</Label>
                 <Input
                   value={formData.nome}
                   onChange={e => handleInputChange('nome', e.target.value)}
@@ -116,22 +145,22 @@ const SubcategoryManagement = () => {
                 />
               </div>
               <div>
-                <Label>Categoria</Label>
-                <select
-                  value={formData.categoriaId}
-                  onChange={e => handleInputChange('categoriaId', e.target.value)}
-                  required
-                  className="w-full border rounded px-2 py-1"
-                >
-                  <option value="">Selecione uma categoria</option>
+                <Label>Categorias associadas</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
                   {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                    <label key={cat.id} className="flex items-center gap-1 border p-2 rounded">
+                      <Checkbox
+                        checked={formData.selectedCategories.includes(cat.id)}
+                        onCheckedChange={() => toggleCategory(cat.id)}
+                      />
+                      {cat.nome}
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-4">
                 <Button type="submit">{editId ? 'Atualizar' : 'Salvar'}</Button>
-                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditId(null); }}>
+                <Button variant="outline" type="button" onClick={() => { setShowForm(false); setEditId(null); }}>
                   Cancelar
                 </Button>
               </div>
@@ -152,7 +181,7 @@ const SubcategoryManagement = () => {
                   <div>
                     <p className="font-bold">{sub.nome}</p>
                     <p className="text-sm text-muted-foreground">
-                      Categoria: {sub.categoriaNome || sub.categoriaId}
+                      Categorias: {sub.categorias.map(c => c.nome).join(', ')}
                     </p>
                   </div>
                   <div className="flex gap-2">
